@@ -1,15 +1,242 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// File: prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+// Users & Authentication
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(EDITOR)
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  articles      Article[]
+  projects      Project[]
+  auditLogs     AuditLog[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  SEO
+}
+
+// Articles & Blog
+model Article {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  content         String        @db.LongText
+  excerpt         String?       @db.Text
+  featuredImage   String?
+  status          ContentStatus @default(DRAFT)
+  publishedAt     DateTime?
+  viewCount       Int           @default(0)
+  
+  // SEO Fields
+  metaTitle       String?
+  metaDescription String?       @db.Text
+  canonicalUrl    String?
+  robotsMeta      String?       @default("index,follow")
+  
+  // Relations
+  authorId        String
+  author          User          @relation(fields: [authorId], references: [id])
+  categoryId      String?
+  category        Category?     @relation(fields: [categoryId], references: [id])
+  tags            ArticleTag[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("articles")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?   @db.Text
+  color       String?   @default("#10B981")
+  articles    Article[]
+  projects    Project[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("categories")
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  slug     String       @unique
+  articles ArticleTag[]
+  
+  @@map("tags")
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+// Projects
+model Project {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  description     String        @db.LongText
+  shortDescription String?      @db.Text
+  featuredImage   String?
+  gallery         String?       @db.Text // JSON array of image URLs
+  status          ContentStatus @default(DRAFT)
+  publishedAt     DateTime?
+  
+  // SEO Fields  
+  metaTitle       String?
+  metaDescription String?       @db.Text
+  canonicalUrl    String?
+  
+  // Relations
+  authorId        String
+  author          User          @relation(fields: [authorId], references: [id])
+  categoryId      String?
+  category        Category?     @relation(fields: [categoryId], references: [id])
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("projects")
+}
+
+// YouTube Content
+model YouTubeContent {
+  id          String        @id @default(cuid())
+  title       String
+  videoId     String        @unique // YouTube video ID
+  url         String        // Full YouTube URL
+  thumbnail   String?       // Auto-fetched thumbnail
+  description String?       @db.Text
+  tags        String?       @db.Text // JSON array
+  status      ContentStatus @default(PUBLISHED)
+  publishedAt DateTime?
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  @@map("youtube_contents")
+}
+
+// Company Profile & Static Content
+model CompanyProfile {
+  id      String @id @default("company_profile")
+  
+  // Company Info
+  name    String @default("The Formulator")
+  tagline String?
+  logo    String?
+  
+  // About Us Content
+  vision      String? @db.LongText
+  mission     String? @db.LongText
+  aboutUs     String? @db.LongText
+  legalInfo   String? @db.LongText
+  teamInfo    String? @db.LongText
+  
+  // 5W1H Content
+  what        String? @db.LongText
+  why         String? @db.LongText  
+  when        String? @db.LongText
+  where       String? @db.LongText
+  who         String? @db.LongText
+  how         String? @db.LongText
+  
+  // Contact Info
+  email       String?
+  phone       String?
+  address     String? @db.Text
+  socialMedia String? @db.Text // JSON object
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@map("company_profile")
+}
+
+// SEO Settings
+model SeoSetting {
+  id              String @id @default("global_seo")
+  siteName        String @default("The Formulator")
+  siteDescription String @default("Expert Herbal Formulation & Skincare Solutions")
+  siteKeywords    String? @db.Text
+  defaultImage    String?
+  favicon         String?
+  
+  // Analytics
+  googleAnalyticsId String?
+  googleSearchConsole String?
+  
+  // Social Media
+  ogImage         String?
+  twitterHandle   String?
+  
+  updatedAt       DateTime @updatedAt
+  
+  @@map("seo_settings")
+}
+
+// Media Management
+model Media {
+  id          String    @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  altText     String?
+  caption     String?
+  uploadedBy  String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("media")
+}
+
+// Audit Logs
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // CREATE, UPDATE, DELETE
+  entity    String   // Article, Project, etc
+  entityId  String
+  oldData   String?  @db.LongText // JSON
+  newData   String?  @db.LongText // JSON
+  createdAt DateTime @default(now())
+  
+  @@map("audit_logs")
+}
+
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW  
+  PUBLISHED
 }
