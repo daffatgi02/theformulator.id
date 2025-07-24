@@ -1,0 +1,329 @@
+// File: src/app/(dashboard)/admin/projects/page.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useProjects } from '@/hooks/use-content'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import {
+    Plus,
+    Search,
+    Eye,
+    Edit,
+    Trash2,
+    Filter,
+    MoreHorizontal,
+    FolderOpen
+} from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
+export default function ProjectsPage() {
+    const [filters, setFilters] = useState({
+        page: 1,
+        limit: 10,
+        status: '',
+        categoryId: ''
+    })
+
+    const { projects, loading, pagination } = useProjects(filters)
+    const [categories, setCategories] = useState([])
+
+    useEffect(() => {
+        fetchCategories()
+    }, [])
+
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('/api/categories')
+            const result = await response.json()
+            if (result.success) {
+                setCategories(result.data)
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error)
+        }
+    }
+
+    const handleStatusFilter = (value: string) => {
+        setFilters(prev => ({ ...prev, status: value, page: 1 }))
+    }
+
+    const handleCategoryFilter = (value: string) => {
+        setFilters(prev => ({ ...prev, categoryId: value, page: 1 }))
+    }
+
+    const handlePageChange = (page: number) => {
+        setFilters(prev => ({ ...prev, page }))
+    }
+
+    const getStatusVariant = (status: string) => {
+        switch (status) {
+            case 'PUBLISHED':
+                return 'default'
+            case 'DRAFT':
+                return 'secondary'
+            case 'IN_REVIEW':
+                return 'outline'
+            default:
+                return 'secondary'
+        }
+    }
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'PUBLISHED':
+                return 'Published'
+            case 'DRAFT':
+                return 'Draft'
+            case 'IN_REVIEW':
+                return 'In Review'
+            default:
+                return status
+        }
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Project</h1>
+                    <p className="text-gray-600">Kelola project dan portfolio The Formulator</p>
+                </div>
+                <Link href="/admin/projects/new">
+                    <Button className="bg-emerald-600 hover:bg-emerald-700">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Project Baru
+                    </Button>
+                </Link>
+            </div>
+
+            {/* Filters */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Filter className="h-5 w-5" />
+                        Filter Project
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <Select value={filters.status} onValueChange={handleStatusFilter}>
+                            <SelectTrigger className="w-full sm:w-[180px]">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Semua Status</SelectItem>
+                                <SelectItem value="PUBLISHED">Published</SelectItem>
+                                <SelectItem value="DRAFT">Draft</SelectItem>
+                                <SelectItem value="IN_REVIEW">In Review</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={filters.categoryId} onValueChange={handleCategoryFilter}>
+                            <SelectTrigger className="w-full sm:w-[180px]">
+                                <SelectValue placeholder="Kategori" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Semua Kategori</SelectItem>
+                                {categories.map((category: any) => (
+                                    <SelectItem key={category.id} value={category.id}>
+                                        {category.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Projects Table */}
+            <Card>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Project</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Kategori</TableHead>
+                                <TableHead>Penulis</TableHead>
+                                <TableHead>Tanggal</TableHead>
+                                <TableHead className="w-[100px]">Aksi</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell>
+                                            <div className="space-y-2">
+                                                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell><div className="h-6 bg-gray-200 rounded w-20"></div></TableCell>
+                                        <TableCell><div className="h-4 bg-gray-200 rounded w-24"></div></TableCell>
+                                        <TableCell><div className="h-4 bg-gray-200 rounded w-20"></div></TableCell>
+                                        <TableCell><div className="h-4 bg-gray-200 rounded w-24"></div></TableCell>
+                                        <TableCell><div className="h-8 bg-gray-200 rounded w-8"></div></TableCell>
+                                    </TableRow>
+                                ))
+                            ) : projects.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8">
+                                        <div className="text-gray-500">
+                                            <FolderOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                            <p>Belum ada project</p>
+                                            <Link href="/admin/projects/new">
+                                                <Button variant="outline" className="mt-2">
+                                                    Buat Project Pertama
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                projects.map((project) => (
+                                    <TableRow key={project.id}>
+                                        <TableCell>
+                                            <div className="flex items-center space-x-3">
+                                                {project.featuredImage && (
+                                                    <img
+                                                        src={project.featuredImage}
+                                                        alt={project.title}
+                                                        className="h-12 w-12 rounded-md object-cover"
+                                                    />
+                                                )}
+                                                <div>
+                                                    <div className="font-medium text-gray-900">
+                                                        {project.title}
+                                                    </div>
+                                                    {project.shortDescription && (
+                                                        <div className="text-sm text-gray-500 truncate max-w-md">
+                                                            {project.shortDescription}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={getStatusVariant(project.status)}>
+                                                {getStatusLabel(project.status)}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {project.category ? (
+                                                <span
+                                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                                                    style={{
+                                                        backgroundColor: `${project.category.color}20`,
+                                                        color: project.category.color ?? '#000'
+                                                    }}
+                                                >
+                                                    {project.category.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm text-gray-600">
+                                                {project.author.name}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm text-gray-600">
+                                                {new Date(project.createdAt).toLocaleDateString('id-ID')}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/projects/${project.slug}`} target="_blank">
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            Lihat
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/admin/projects/${project.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Edit
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="text-red-600">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Hapus
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            {/* Pagination */}
+            {pagination.pages > 1 && (
+                <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                        Menampilkan {((pagination.page - 1) * pagination.limit) + 1} sampai{' '}
+                        {Math.min(pagination.page * pagination.limit, pagination.total)} dari{' '}
+                        {pagination.total} project
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={pagination.page === 1}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm">
+                            Page {pagination.page} of {pagination.pages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={pagination.page === pagination.pages}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
