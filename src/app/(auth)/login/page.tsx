@@ -2,7 +2,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,15 +35,12 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Email atau password salah')
-      } else {
-        // Check if login successful by getting session
-        const session = await getSession()
-        if (session) {
-          router.push('/admin/dashboard')
-          router.refresh()
-        }
+      } else if (result?.ok) {
+        router.push('/admin/dashboard')
+        router.refresh()
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError('Terjadi kesalahan saat login')
     } finally {
       setIsLoading(false)
