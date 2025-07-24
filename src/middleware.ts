@@ -4,8 +4,21 @@ import { NextResponse } from 'next/server'
 
 export default withAuth(
   function middleware(req) {
+    const { pathname } = req.nextUrl
+
+    // Skip middleware for test routes and public API routes
+    if (
+      pathname.startsWith('/api/test-') ||
+      pathname.startsWith('/api/auth/') ||
+      pathname === '/api/auth/providers' ||
+      pathname === '/api/auth/session' ||
+      pathname === '/api/auth/csrf'
+    ) {
+      return NextResponse.next()
+    }
+
     // Admin routes protection
-    if (req.nextUrl.pathname.startsWith('/admin')) {
+    if (pathname.startsWith('/admin')) {
       const token = req.nextauth.token
       
       if (!token) {
@@ -18,13 +31,11 @@ export default withAuth(
       }
     }
 
-    // API routes protection
-    if (req.nextUrl.pathname.startsWith('/api/')) {
-      // Skip auth routes
-      if (req.nextUrl.pathname.startsWith('/api/auth/')) {
-        return NextResponse.next()
-      }
-
+    // API routes protection (except auth and test routes)
+    if (pathname.startsWith('/api/') && 
+        !pathname.startsWith('/api/auth/') && 
+        !pathname.startsWith('/api/test-')) {
+      
       const token = req.nextauth.token
       
       if (!token) {
@@ -39,14 +50,26 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ token, req }) => {
+        // Allow access to test routes without authentication
+        if (req.nextUrl.pathname.startsWith('/api/test-')) {
+          return true
+        }
+        
+        // For other protected routes, require token
+        return !!token
+      }
     },
   }
 )
 
 export const config = {
   matcher: [
+    // Include admin routes
     '/admin/:path*',
+    // Include API routes but exclude auth and test routes
+    '/api/((?!auth|test-).)*',
+    // Specifically include protected API routes
     '/api/articles/:path*',
     '/api/projects/:path*',
     '/api/youtube/:path*',
