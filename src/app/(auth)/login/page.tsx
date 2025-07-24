@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,12 +13,9 @@ import { Loader2, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/admin/dashboard'
-  
   const [formData, setFormData] = useState({
-    email: 'admin@theformulator.id', // Pre-fill for testing
-    password: 'AdminFormulator2025!' // Pre-fill for testing
+    email: '',
+    password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -26,7 +23,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🚀 Form submitted')
     
     if (!formData.email || !formData.password) {
       setError('Email dan password harus diisi')
@@ -37,84 +33,27 @@ export default function LoginPage() {
     setError('')
 
     try {
-      console.log('🔑 Attempting signIn with NextAuth...')
-      
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false,
-        callbackUrl
       })
 
-      console.log('📊 SignIn result:', result)
-
       if (result?.error) {
-        console.error('❌ SignIn error:', result.error)
-        setError(`Login gagal: ${result.error}`)
+        setError('Email atau password salah')
       } else if (result?.ok) {
-        console.log('✅ Login successful!')
-        router.push(callbackUrl)
+        router.push('/admin/dashboard')
         router.refresh()
-      } else {
-        console.error('❌ Unexpected result:', result)
-        setError('Terjadi kesalahan yang tidak diketahui')
       }
     } catch (err) {
-      console.error('💥 Login exception:', err)
-      if (err instanceof Error) {
-        setError(`Exception: ${err.message}`)
-      } else {
-        setError('Exception: An unknown error occurred')
-      }
+      setError('Terjadi kesalahan saat login')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
-
-  // Test database function
-  const testDatabase = async () => {
-    try {
-      console.log('🧪 Testing database...')
-      const response = await fetch('/api/debug/db')
-      const result = await response.json()
-      console.log('🗄️ Database test result:', result)
-      alert(`Database test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details`)
-    } catch (error) {
-      console.error('Database test failed:', error)
-      alert('Database test failed - check console')
-    }
-  }
-
-  // Test auth function
-  const testAuth = async () => {
-    try {
-      console.log('🧪 Testing auth...')
-      const response = await fetch('/api/debug/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'admin@theformulator.id',
-          password: 'AdminFormulator2025!'
-        })
-      })
-      const result = await response.json()
-      console.log('🔐 Auth test result:', result)
-      alert(`Auth test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details`)
-    } catch (error) {
-      console.error('Auth test failed:', error)
-      alert('Auth test failed - check console')
-    }
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
@@ -144,7 +83,8 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
+                placeholder="admin@theformulator.id"
                 required
                 disabled={isLoading}
               />
@@ -158,7 +98,8 @@ export default function LoginPage() {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
+                  placeholder="Masukkan password"
                   required
                   disabled={isLoading}
                 />
@@ -186,20 +127,10 @@ export default function LoginPage() {
                   Masuk...
                 </>
               ) : (
-                'Masuk'
+                'Masuk ke Dashboard'
               )}
             </Button>
           </form>
-          
-          {/* Debug Buttons */}
-          <div className="mt-6 space-y-2">
-            <Button onClick={testDatabase} variant="outline" size="sm" className="w-full">
-              🗄️ Test Database
-            </Button>
-            <Button onClick={testAuth} variant="outline" size="sm" className="w-full">
-              🔐 Test Auth Logic
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
